@@ -1,3 +1,8 @@
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
+
 import OpenEXR, Imath
 import numpy as np
 from collections import defaultdict
@@ -25,7 +30,7 @@ def open(filename):
   if not OpenEXR.isOpenExrFile(filename):
     raise Exception("File '%s' is not an EXR file." % filename)
   # Return an `InputFile`
-  return InputFile(OpenEXR.InputFile(filename))
+  return InputFile(OpenEXR.InputFile(filename), filename)
 
 
 def read(filename, channels = "", type = FLOAT):
@@ -44,7 +49,7 @@ def read(filename, channels = "", type = FLOAT):
     return f.get(channels, type)
 
 
-def write(filename, data, channel_names = {}, type = FLOAT, compression = PIZ_COMPRESSION):
+def write(filename, data, channel_names = None, type = FLOAT, compression = PIZ_COMPRESSION):
 
   # Helper function add a third dimension to 2-dimensional matrices (single channel)
   def make_ndims_3(matrix):
@@ -65,7 +70,9 @@ def write(filename, data, channel_names = {}, type = FLOAT, compression = PIZ_CO
     else:
       raise Exception("There are no suitable default channel names for data of depth %d" % depth)
 
-  """Case 1, the `data` argument is a dictionary"""
+  #
+  # Case 1, the `data` argument is a dictionary
+  #
   if isinstance(data, dict):
     # Make sure everything has ndims 3
     for group, matrix in data.viewitems():
@@ -78,6 +85,8 @@ def write(filename, data, channel_names = {}, type = FLOAT, compression = PIZ_CO
       types = {group: type.get(group, FLOAT) for group in data.keys()}
 
     # Prepare channel names
+    if channel_names is None:
+      channel_names = {}
     channel_names = {group: get_channel_names(channel_names.get(group), matrix.shape[2]) for group, matrix in data.viewitems()}
 
     # Collect channels
@@ -108,8 +117,9 @@ def write(filename, data, channel_names = {}, type = FLOAT, compression = PIZ_CO
     out = OpenEXR.OutputFile(filename, header)
     out.writePixels(channel_data)
 
-
-  """Case 2, the `data` argument is one matrix"""
+  #
+  # Case 2, the `data` argument is one matrix
+  #
   elif isinstance(data, np.ndarray):
     data = make_ndims_3(data)
     height, width, depth = data.shape
@@ -130,21 +140,11 @@ def tonemap(matrix, gamma=2.2):
 
 class InputFile(object):
 
-  input_file = None
-  channels = []
-  precisions = []
-  channel_precision = {}
-  height = None
-  width = None
-  depth = None
-
-  channel_map = defaultdict(list)
-
-  def __init__(self, input_file):
+  def __init__(self, input_file, filename=None):
     self.input_file = input_file
 
     if not input_file.isComplete():
-      raise Exception("EXR file is not ready.")
+      raise Exception("EXR file '%s' is not ready." % filename)
 
     header = input_file.header()
     dw     = header['dataWindow']
@@ -155,6 +155,7 @@ class InputFile(object):
     self.depth             = len(self.channels)
     self.precisions        = [c.type for c in header['channels'].values()]
     self.channel_precision = {c: v.type for c, v in header['channels'].viewitems()}
+    self.channel_map = defaultdict(list)
 
     self._init_channel_map()
 
@@ -164,7 +165,7 @@ class InputFile(object):
       parts = c.split('.')
       if len(parts) is 1:
         self.channel_map['default'].append(c)
-      for i in range(0, len(parts)+1):
+      for i in xrange(0, len(parts)+1):
         key = ".".join(parts[0:i])
         self.channel_map[key].append(c)
     # Sort the channels
