@@ -115,6 +115,6 @@ exr.write(
     data, 
     type = {'default': exr.HALF},
     channel_names = {'Depth': ['Q']}
-) # channels Depth.Z, Color.(R,G,B), Variance.(R,G,B)
+) # channels R, G, B, Depth.Z, Variance.(R,G,B)
 
 ~~~
