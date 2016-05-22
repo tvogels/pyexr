@@ -105,15 +105,15 @@ depth    # (720,1280) np.float16 array
 color    # (720,180,3) np.float32 array
 variance # (720,180,3) np.float32 array
 
-data = {'Depth': depth, 'Color': color, 'Variance': variance}
+data = {'default': color, 'Depth': depth, 'Variance': variance} # default is a reserved name
 
-exr.write("out.exr", data) # channels Depth.Z, Color.(R,G,B), Variance.(R,G,B)
+exr.write("out.exr", data) # channels R, G, B, Depth.Z, Variance.(R,G,B)
 
 # Full customization:
 exr.write(
     "out.exr", 
     data, 
-    type = {'Color': exr.HALF},
+    type = {'default': exr.HALF},
     channel_names = {'Depth': ['Q']}
 ) # channels Depth.Z, Color.(R,G,B), Variance.(R,G,B)
 

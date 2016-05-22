@@ -106,7 +106,10 @@ def write(filename, data, channel_names = None, type = FLOAT, compression = PIZ_
       if len(names) != depth:
         raise Exception("Depth does not match the number of channel names for channel '%s'" % group)
       for i, c in enumerate(names):
-        channel_name = "%s.%s" % (group, c)
+        if group == "default":
+          channel_name = c
+        else:
+          channel_name = "%s.%s" % (group, c)
         channels[channel_name] = Imath.Channel(types[group])
         channel_data[channel_name] = matrix[:,:,i].astype(nptype[types[group]]).tostring()
 
