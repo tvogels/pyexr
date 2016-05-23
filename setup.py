@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
   name             = "PyEXR",
-  version          = "0.2",
+  version          = "0.2.1",
   description      = "One line EXR manipulation library",
   author           = "Thijs Vogels",
   author_email     = "t.vogels@me.com",
