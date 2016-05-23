@@ -18,7 +18,7 @@ ZIP_COMPRESSION   = Imath.Compression(Imath.Compression.ZIP_COMPRESSION)
 PIZ_COMPRESSION   = Imath.Compression(Imath.Compression.PIZ_COMPRESSION)
 PXR24_COMPRESSION = Imath.Compression(Imath.Compression.PXR24_COMPRESSION)
 
-nptype = {
+NP_PRECISION = {
   FLOAT: np.float32,
   HALF:  np.float16,
   UINT:  np.uint8
@@ -33,23 +33,23 @@ def open(filename):
   return InputFile(OpenEXR.InputFile(filename), filename)
 
 
-def read(filename, channels = "", type = FLOAT):
+def read(filename, channels = "", precision = FLOAT):
   f = open(filename)
 
   if _is_list(channels):
-    # Construct an array of types
-    if _is_list(type):
-      types = type
+    # Construct an array of precisions
+    if _is_list(precision):
+      precisions = precision
     else:
-      types = [type] * len(channels)
+      precisions = [precision] * len(channels)
 
-    return [f.get(c, t) for c, t in zip(channels, types)]
+    return [f.get(c, t) for c, t in zip(channels, precisions)]
 
   else:
-    return f.get(channels, type)
+    return f.get(channels, precision)
 
 
-def write(filename, data, channel_names = None, type = FLOAT, compression = PIZ_COMPRESSION):
+def write(filename, data, channel_names = None, precision = FLOAT, compression = PIZ_COMPRESSION):
 
   # Helper function add a third dimension to 2-dimensional matrices (single channel)
   def make_ndims_3(matrix):
@@ -78,11 +78,11 @@ def write(filename, data, channel_names = None, type = FLOAT, compression = PIZ_
     for group, matrix in data.viewitems():
       data[group] = make_ndims_3(matrix)
 
-    # Prepare types
-    if not isinstance(type, dict):
-      types = {group: type for group in data.keys()}
+    # Prepare precisions
+    if not isinstance(precision, dict):
+      precisions = {group: precision for group in data.keys()}
     else:
-      types = {group: type.get(group, FLOAT) for group in data.keys()}
+      precisions = {group: precision.get(group, FLOAT) for group in data.keys()}
 
     # Prepare channel names
     if channel_names is None:
@@ -110,8 +110,8 @@ def write(filename, data, channel_names = None, type = FLOAT, compression = PIZ_
           channel_name = c
         else:
           channel_name = "%s.%s" % (group, c)
-        channels[channel_name] = Imath.Channel(types[group])
-        channel_data[channel_name] = matrix[:,:,i].astype(nptype[types[group]]).tostring()
+        channels[channel_name] = Imath.Channel(precisions[group])
+        channel_data[channel_name] = matrix[:,:,i].astype(NP_PRECISION[precisions[group]]).tostring()
 
     # Save
     header = OpenEXR.Header(width, height)
@@ -129,12 +129,12 @@ def write(filename, data, channel_names = None, type = FLOAT, compression = PIZ_
     channel_names = get_channel_names(channel_names, depth)
     header = OpenEXR.Header(width, height)
     header['compression'] = compression
-    header['channels'] = {c: Imath.Channel(type) for c in channel_names}
+    header['channels'] = {c: Imath.Channel(precision) for c in channel_names}
     out = OpenEXR.OutputFile(filename, header)
-    out.writePixels({c: data[:,:,i].astype(nptype[type]).tostring() for i, c in enumerate(channel_names)})
+    out.writePixels({c: data[:,:,i].astype(NP_PRECISION[precision]).tostring() for i, c in enumerate(channel_names)})
 
   else:
-    raise Exception("Invalid type for the `data` argument. Supported are NumPy arrays and dictionaries.")
+    raise Exception("Invalid precision for the `data` argument. Supported are NumPy arrays and dictionaries.")
 
 
 def tonemap(matrix, gamma=2.2):
@@ -154,7 +154,7 @@ class InputFile(object):
 
     self.width             = dw.max.x - dw.min.x + 1
     self.height            = dw.max.y - dw.min.y + 1
-    self.channels          = header['channels'].keys()
+    self.channels          = sorted(header['channels'].keys(),key=_channel_sort_key)
     self.depth             = len(self.channels)
     self.precisions        = [c.type for c in header['channels'].values()]
     self.channel_precision = {c: v.type for c, v in header['channels'].viewitems()}
@@ -173,42 +173,44 @@ class InputFile(object):
         self.channel_map[key].append(c)
     # Sort the channels
     for k, v in self.channel_map.viewitems():
-      sortkey = lambda i: [_sort_dictionary(x) for x in i.split(".")]
-      self.channel_map[k] = sorted(v, key=sortkey)
+      v.sort(key=_channel_sort_key)
 
-  def channel(self, channel, type = FLOAT):
-    data  = self.input_file.channel(channel, type)
-    array = np.fromstring(data, dtype = nptype[type])
+  def channel(self, channel, precision = FLOAT):
+    data  = self.input_file.channel(channel, precision)
+    array = np.fromstring(data, dtype = NP_PRECISION[precision])
     if array.shape[0] != self.width * self.height:
-      raise Exception("Failed to load %s data as %s" % (self.channel_precision[channel], type))
+      raise Exception("Failed to load %s data as %s" % (self.channel_precision[channel], precision))
     return array.reshape(self.height, self.width)
 
-  def get(self, group = '', type = FLOAT):
+  def get(self, group = '', precision = FLOAT):
     channels = self.channel_map[group]
-    matrix = np.zeros((self.height, self.width, len(channels)), dtype=nptype[type])
+    matrix = np.zeros((self.height, self.width, len(channels)), dtype=NP_PRECISION[precision])
     for i, c in enumerate(channels):
-      matrix[:,:,i] = self.channel(c, type)
+      matrix[:,:,i] = self.channel(c, precision)
     return matrix
 
 
 def _sort_dictionary(key):
-  if key is 'R' or key is 'r':
+  if key == 'R' or key == 'r':
     return 10
-  elif key is 'G' or key is 'g':
+  elif key == 'G' or key == 'g':
     return 20
-  elif key is 'B' or key is 'b':
+  elif key == 'B' or key == 'b':
     return 30
-  elif key is 'A' or key is 'a':
+  elif key == 'A' or key == 'a':
     return 40
-  elif key is 'X' or key is 'x':
+  elif key == 'X' or key == 'x':
     return 110
-  elif key is 'Y' or key is 'y':
+  elif key == 'Y' or key == 'y':
     return 120
-  elif key is 'Z' or key is 'z':
+  elif key == 'Z' or key == 'z':
     return 130
   else:
     return key
 
+
+def _channel_sort_key(i):
+  return [_sort_dictionary(x) for x in i.split(".")]
 
 _default_channel_names = {
   1: ['Z'],

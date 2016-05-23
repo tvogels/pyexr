@@ -113,8 +113,8 @@ exr.write("out.exr", data) # channels R, G, B, Depth.Z, Variance.(R,G,B)
 exr.write(
     "out.exr", 
     data, 
-    type = {'default': exr.HALF},
+    precision = {'default': pyexr.HALF},
     channel_names = {'Depth': ['Q']}
-) # channels R, G, B, Depth.Z, Variance.(R,G,B)
+) # channels R, G, B, Depth.Q, Variance.R, Variance.G, Variance.B
 
 ~~~
