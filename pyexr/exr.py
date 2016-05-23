@@ -212,6 +212,7 @@ def _sort_dictionary(key):
 def _channel_sort_key(i):
   return [_sort_dictionary(x) for x in i.split(".")]
 
+
 _default_channel_names = {
   1: ['Z'],
   2: ['X','Y'],
