@@ -6,7 +6,7 @@ A simple EXR IO-library for Python that simplifies the use of [OpenEXR](https://
 ### Installation
 
 ~~~bash
-pip install git+git://github.com/tvogels/pyexr.git
+pip install pyexr
 ~~~
 
 ### Reading
