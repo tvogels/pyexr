@@ -19,9 +19,9 @@ PIZ_COMPRESSION   = Imath.Compression(Imath.Compression.PIZ_COMPRESSION)
 PXR24_COMPRESSION = Imath.Compression(Imath.Compression.PXR24_COMPRESSION)
 
 NP_PRECISION = {
-  FLOAT: np.float32,
-  HALF:  np.float16,
-  UINT:  np.uint8
+  "FLOAT": np.float32,
+  "HALF":  np.float16,
+  "UINT":  np.uint8
 }
 
 
@@ -175,18 +175,15 @@ class InputFile(object):
     for k, v in self.channel_map.viewitems():
       v.sort(key=_channel_sort_key)
 
-  def channel(self, channel, precision = FLOAT):
-    data  = self.input_file.channel(channel, precision)
-    array = np.fromstring(data, dtype = NP_PRECISION[precision])
-    if array.shape[0] != self.width * self.height:
-      raise Exception("Failed to load %s data as %s" % (self.channel_precision[channel], precision))
-    return array.reshape(self.height, self.width)
-
-  def get(self, group = '', precision = FLOAT):
+  def get(self, group = '', precision=FLOAT):
     channels = self.channel_map[group]
-    matrix = np.zeros((self.height, self.width, len(channels)), dtype=NP_PRECISION[precision])
-    for i, c in enumerate(channels):
-      matrix[:,:,i] = self.channel(c, precision)
+    strings = self.input_file.channels(channels)
+
+    matrix = np.zeros((self.height, self.width, len(channels)), dtype=NP_PRECISION[str(precision)])
+    for i, string in enumerate(strings):
+      precision = NP_PRECISION[str(self.channel_precision[channels[i]])]
+      matrix[:,:,i] = np.fromstring(string, dtype = precision) \
+                        .reshape(self.height, self.width)
     return matrix
 
 
