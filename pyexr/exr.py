@@ -6,6 +6,8 @@ from builtins import *
 import OpenEXR, Imath
 import numpy as np
 from collections import defaultdict
+from sets import Set
+import os, sys
 
 FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
 HALF  = Imath.PixelType(Imath.PixelType.HALF)
@@ -35,19 +37,16 @@ def open(filename):
 
 def read(filename, channels = "", precision = FLOAT):
   f = open(filename)
-
   if _is_list(channels):
     # Construct an array of precisions
-    if _is_list(precision):
-      precisions = precision
-    else:
-      precisions = [precision] * len(channels)
-
-    return [f.get(c, t) for c, t in zip(channels, precisions)]
+    return f.get_dict(channels, precision=precision)
 
   else:
     return f.get(channels, precision)
 
+def read(filename, precision = FLOAT):
+  f = open(filename)
+  return f.get_all(precision=precision)
 
 def write(filename, data, channel_names = None, precision = FLOAT, compression = PIZ_COMPRESSION):
 
@@ -158,25 +157,42 @@ class InputFile(object):
     self.depth             = len(self.channels)
     self.precisions        = [c.type for c in header['channels'].values()]
     self.channel_precision = {c: v.type for c, v in header['channels'].viewitems()}
-    self.channel_map = defaultdict(list)
-
+    self.channel_map       = defaultdict(list)
+    self.root_channels     = Set()
     self._init_channel_map()
 
   def _init_channel_map(self):
     # Make a dictionary of subchannels per channel
     for c in self.channels:
+      self.channel_map['all'].append(c)
       parts = c.split('.')
       if len(parts) is 1:
+        self.root_channels.add('default')
         self.channel_map['default'].append(c)
-      for i in xrange(0, len(parts)+1):
+      else:
+        self.root_channels.add(parts[0])
+      for i in xrange(1, len(parts)+1):
         key = ".".join(parts[0:i])
         self.channel_map[key].append(c)
-    # Sort the channels
-    for k, v in self.channel_map.viewitems():
-      v.sort(key=_channel_sort_key)
 
-  def get(self, group = '', precision=FLOAT):
+  def describe_channels(self):
+    if 'default' in self.root_channels:
+      for c in self.channel_map['default']:
+        print (c)
+    for group in sorted(list(self.root_channels)):
+      if group != 'default':
+        channels = self.channel_map[group]
+        print("%-20s%s" % (group, ",".join([c[len(group)+1:] for c in channels])))
+
+  def get(self, group = 'default', precision=FLOAT):
     channels = self.channel_map[group]
+
+    if len(channels) == 0:
+      print("I did't find any channels in group '%s'." % group)
+      print("You could try:")
+      self.describe_channels()
+      sys.exit()
+
     strings = self.input_file.channels(channels)
 
     matrix = np.zeros((self.height, self.width, len(channels)), dtype=NP_PRECISION[str(precision)])
@@ -185,6 +201,47 @@ class InputFile(object):
       matrix[:,:,i] = np.fromstring(string, dtype = precision) \
                         .reshape(self.height, self.width)
     return matrix
+
+  def get_all(self, precision = {}):
+    return self.get_dict(self.root_channels, precision)
+
+  def get_dict(self, groups = [], precision = {}):
+
+    if not isinstance(precision, dict):
+      precision = {group: precision for group in groups}
+
+    return_dict = {}
+    todo = []
+    for group in groups:
+      group_chans = self.channel_map[group]
+      if len(group_chans) == 0:
+        print("I didn't find any channels for the requested group '%s'." % group)
+        print("You could try:")
+        self.describe_channels()
+        sys.exit()
+      if group in precision:
+        p = precision[group]
+      else:
+        p = FLOAT
+      matrix = np.zeros((self.height, self.width, len(group_chans)), dtype=NP_PRECISION[str(p)])
+      return_dict[group] = matrix
+      for i, c in enumerate(group_chans):
+        todo.append({'group': group, 'id': i, 'channel': c})
+
+    if len(todo) == 0:
+      print("Please ask for some channels, I cannot process empty queries.")
+      print("You could try:")
+      self.describe_channels()
+      sys.exit()
+
+    strings = self.input_file.channels([c['channel'] for c in todo])
+
+    for i, item in enumerate(todo):
+      precision = NP_PRECISION[str(self.channel_precision[todo[i]['channel']])]
+      return_dict[item['group']][:,:,item['id']] = \
+          np.fromstring(strings[i], dtype = precision) \
+            .reshape(self.height, self.width)
+    return return_dict
 
 
 def _sort_dictionary(key):
