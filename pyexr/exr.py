@@ -44,7 +44,7 @@ def read(filename, channels = "", precision = FLOAT):
   else:
     return f.get(channels, precision)
 
-def read(filename, precision = FLOAT):
+def read_all(filename, precision = FLOAT):
   f = open(filename)
   return f.get_all(precision=precision)
 
