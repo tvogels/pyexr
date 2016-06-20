@@ -35,7 +35,7 @@ def open(filename):
   return InputFile(OpenEXR.InputFile(filename), filename)
 
 
-def read(filename, channels = "", precision = FLOAT):
+def read(filename, channels = "default", precision = FLOAT):
   f = open(filename)
   if _is_list(channels):
     # Construct an array of precisions
