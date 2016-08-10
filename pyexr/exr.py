@@ -6,7 +6,6 @@ from builtins import *
 import OpenEXR, Imath
 import numpy as np
 from collections import defaultdict
-from sets import Set
 import os, sys
 
 FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
@@ -74,7 +73,7 @@ def write(filename, data, channel_names = None, precision = FLOAT, compression =
   #
   if isinstance(data, dict):
     # Make sure everything has ndims 3
-    for group, matrix in data.viewitems():
+    for group, matrix in data.items():
       data[group] = make_ndims_3(matrix)
 
     # Prepare precisions
@@ -86,14 +85,14 @@ def write(filename, data, channel_names = None, precision = FLOAT, compression =
     # Prepare channel names
     if channel_names is None:
       channel_names = {}
-    channel_names = {group: get_channel_names(channel_names.get(group), matrix.shape[2]) for group, matrix in data.viewitems()}
+    channel_names = {group: get_channel_names(channel_names.get(group), matrix.shape[2]) for group, matrix in data.items()}
 
     # Collect channels
     channels = {}
     channel_data = {}
     width = None
     height = None
-    for group, matrix in data.viewitems():
+    for group, matrix in data.items():
       # Read the depth of the current group
       # and set height and width variables if not set yet
       if width is None:
@@ -156,9 +155,9 @@ class InputFile(object):
     self.channels          = sorted(header['channels'].keys(),key=_channel_sort_key)
     self.depth             = len(self.channels)
     self.precisions        = [c.type for c in header['channels'].values()]
-    self.channel_precision = {c: v.type for c, v in header['channels'].viewitems()}
+    self.channel_precision = {c: v.type for c, v in header['channels'].items()}
     self.channel_map       = defaultdict(list)
-    self.root_channels     = Set()
+    self.root_channels     = set()
     self._init_channel_map()
 
   def _init_channel_map(self):
@@ -171,7 +170,7 @@ class InputFile(object):
         self.channel_map['default'].append(c)
       else:
         self.root_channels.add(parts[0])
-      for i in xrange(1, len(parts)+1):
+      for i in range(1, len(parts)+1):
         key = ".".join(parts[0:i])
         self.channel_map[key].append(c)
 
@@ -246,19 +245,19 @@ class InputFile(object):
 
 def _sort_dictionary(key):
   if key == 'R' or key == 'r':
-    return 10
+    return "000010"
   elif key == 'G' or key == 'g':
-    return 20
+    return "000020"
   elif key == 'B' or key == 'b':
-    return 30
+    return "000030"
   elif key == 'A' or key == 'a':
-    return 40
+    return "000040"
   elif key == 'X' or key == 'x':
-    return 110
+    return "000110"
   elif key == 'Y' or key == 'y':
-    return 120
+    return "000120"
   elif key == 'Z' or key == 'z':
-    return 130
+    return "000130"
   else:
     return key
 
