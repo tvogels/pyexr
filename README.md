@@ -24,9 +24,9 @@ file.height                 # 720
 file.channel_precision["R"] # pyexr.FLOAT
 
 img = file.get()                         # (720,1280,3) np.float32 array
-img = file.get(type=pyexr.HALF)          # (720,1280,3) np.float16 array
+img = file.get(precision=pyexr.HALF)          # (720,1280,3) np.float16 array
 red = file.channel("R")                  # (720,1280,1) np.float32 array
-red = file.channel("R", type=pyexr.HALF) # (720,1280,1) np.float16 array
+red = file.channel("R", precision=pyexr.HALF) # (720,1280,1) np.float16 array
 
 ~~~
 
@@ -58,7 +58,7 @@ import pyexr
 
 # 'color.exr' contains R, G, B
 img = pyexr.read("color.exr")                  # (720,1280,3) np.float32 array
-img = pyexr.read("color.exr", type=pyexr.HALF) # (720,1280,3) np.float16 array
+img = pyexr.read("color.exr", precision=pyexr.HALF) # (720,1280,3) np.float16 array
 
 # 'multi-channel.exr' contains R, G, B, A, Variance.R, Variance.G, Variance.B
 all = pyexr.read("multi-channel.exr")             # (720,1280,7) np array
@@ -66,8 +66,8 @@ col = pyexr.read("multi-channel.exr", "default")  # (720,1280,4) np array
 var = pyexr.read("multi-channel.exr", "Variance") # (720,1280,3) np array
 
 col, var = pyexr.read("multi-channel.exr", ["default", "Variance"])
-col, var = pyexr.read("multi-channel.exr", ["default", "Variance"], type=pyexr.HALF)
-col, var = pyexr.read("multi-channel.exr", ["default", "Variance"], type=[pyexr.HALF, pyexr.FLOAT])
+col, var = pyexr.read("multi-channel.exr", ["default", "Variance"], precision=pyexr.HALF)
+col, var = pyexr.read("multi-channel.exr", ["default", "Variance"], precision=[pyexr.HALF, pyexr.FLOAT])
 ~~~
 
 ### Writing
