@@ -25,8 +25,8 @@ file.channel_precision["R"] # pyexr.FLOAT
 
 img = file.get()                         # (720,1280,3) np.float32 array
 img = file.get(precision=pyexr.HALF)          # (720,1280,3) np.float16 array
-red = file.channel("R")                  # (720,1280,1) np.float32 array
-red = file.channel("R", precision=pyexr.HALF) # (720,1280,1) np.float16 array
+red = file.get("R")                  # (720,1280,1) np.float32 array
+red = file.get("R", precision=pyexr.HALF) # (720,1280,1) np.float16 array
 
 ~~~
 
@@ -89,9 +89,9 @@ depth  # (720,1280) np.float16 array
 color  # (720,180,3) np.float32 array
 normal # (720,180,3) np.float32 array
 
-exr.write("out.exr", depth)            # one FLOAT channel: Z
-exr.write("out.exr", color)            # three FLOAT channels: R, G, B
-exr.write("out.exr", normal, 
+pyexr.write("out.exr", depth)            # one FLOAT channel: Z
+pyexr.write("out.exr", color)            # three FLOAT channels: R, G, B
+pyexr.write("out.exr", normal,
           channel_names=['X','Y','Z']) # three FLOAT channels: X, Y, Z
 
 ~~~
@@ -107,12 +107,12 @@ variance # (720,180,3) np.float32 array
 
 data = {'default': color, 'Depth': depth, 'Variance': variance} # default is a reserved name
 
-exr.write("out.exr", data) # channels R, G, B, Depth.Z, Variance.(R,G,B)
+pyexr.write("out.exr", data) # channels R, G, B, Depth.Z, Variance.(R,G,B)
 
 # Full customization:
-exr.write(
-    "out.exr", 
-    data, 
+pyexr.write(
+    "out.exr",
+    data,
     precision = {'default': pyexr.HALF},
     channel_names = {'Depth': ['Q']}
 ) # channels R, G, B, Depth.Q, Variance.R, Variance.G, Variance.B
