@@ -34,7 +34,7 @@ def open(filename):
   return InputFile(OpenEXR.InputFile(filename), filename)
 
 
-def read(filename, channels = "default", precision = FLOAT):
+def read(filename, channels = "all", precision = FLOAT):
   f = open(filename)
   if _is_list(channels):
     # Construct an array of precisions
@@ -168,6 +168,7 @@ class InputFile(object):
       if len(parts) is 1:
         self.root_channels.add('default')
         self.channel_map['default'].append(c)
+        self.channel_map['default.' + c].append(c)
       else:
         self.root_channels.add(parts[0])
       for i in range(1, len(parts)+1):
@@ -183,7 +184,7 @@ class InputFile(object):
         channels = self.channel_map[group]
         print("%-20s%s" % (group, ",".join([c[len(group)+1:] for c in channels])))
 
-  def get(self, group = 'default', precision=FLOAT):
+  def get(self, group = 'all', precision=FLOAT):
     channels = self.channel_map[group]
 
     if len(channels) == 0:
@@ -206,7 +207,9 @@ class InputFile(object):
 
   def get_dict(self, groups = [], precision = {}):
 
-    if not isinstance(precision, dict):
+    if _is_list(precision):
+      precision = {group: precision[i] for i, group in enumerate(groups)}
+    elif not isinstance(precision, dict):
       precision = {group: precision for group in groups}
 
     return_dict = {}
@@ -276,10 +279,4 @@ _default_channel_names = {
 
 def _is_list(x):
   return isinstance(x, (list, tuple, np.ndarray))
-
-
-
-
-
-
 
