@@ -22,7 +22,7 @@ PXR24_COMPRESSION = Imath.Compression(Imath.Compression.PXR24_COMPRESSION)
 NP_PRECISION = {
   "FLOAT": np.float32,
   "HALF":  np.float16,
-  "UINT":  np.uint8
+  "UINT":  np.uint32
 }
 
 
