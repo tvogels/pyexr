@@ -60,7 +60,7 @@ def write(filename, data, channel_names = None, precision = FLOAT, compression =
   # Helper function to read channel names from default
   def get_channel_names(channel_names, depth):
     if channel_names:
-      if depth is not len(channel_names):
+      if depth != len(channel_names):
         raise Exception("The provided channel names have the wrong length (%d vs %d)." % (len(channel_names), depth))
       return channel_names
     elif depth in _default_channel_names:
