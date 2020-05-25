@@ -6,7 +6,7 @@ from builtins import *
 import OpenEXR, Imath
 import numpy as np
 from collections import defaultdict
-import os, sys
+import os
 
 FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
 HALF  = Imath.PixelType(Imath.PixelType.HALF)
@@ -190,7 +190,7 @@ class InputFile(object):
       print("I did't find any channels in group '%s'." % group)
       print("You could try:")
       self.describe_channels()
-      sys.exit()
+      raise Exception("I did't find any channels in group '%s'." % group)
 
     strings = self.input_file.channels(channels)
 
@@ -217,7 +217,7 @@ class InputFile(object):
         print("I didn't find any channels for the requested group '%s'." % group)
         print("You could try:")
         self.describe_channels()
-        sys.exit()
+        raise Exception("I did't find any channels in group '%s'." % group)
       if group in precision:
         p = precision[group]
       else:
@@ -231,7 +231,7 @@ class InputFile(object):
       print("Please ask for some channels, I cannot process empty queries.")
       print("You could try:")
       self.describe_channels()
-      sys.exit()
+      raise Exception("Please ask for some channels, I cannot process empty queries.")
 
     strings = self.input_file.channels([c['channel'] for c in todo])
 
