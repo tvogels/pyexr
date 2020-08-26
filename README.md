@@ -72,7 +72,7 @@ col, var = pyexr.read("multi-channel.exr", ["default", "Variance"], precision=[p
 
 ### Writing
 
-You can write write a matrix to EXR without specifying channel names. Default channel names will then be used:
+You can write a matrix to EXR without specifying channel names. Default channel names will then be used:
 
 | *#* columns | default    |
 | ----------- | ---------- |
