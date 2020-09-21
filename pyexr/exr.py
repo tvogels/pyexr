@@ -197,7 +197,7 @@ class InputFile(object):
     matrix = np.zeros((self.height, self.width, len(channels)), dtype=NP_PRECISION[str(precision)])
     for i, string in enumerate(strings):
       precision = NP_PRECISION[str(self.channel_precision[channels[i]])]
-      matrix[:,:,i] = np.fromstring(string, dtype = precision) \
+      matrix[:,:,i] = np.frombuffer(string, dtype = precision) \
                         .reshape(self.height, self.width)
     return matrix
 
