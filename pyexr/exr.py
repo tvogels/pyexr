@@ -53,7 +53,7 @@ def write(filename, data, channel_names = None, precision = FLOAT, compression =
   def make_ndims_3(matrix):
     if matrix.ndim > 3 or matrix.ndim < 2:
       raise Exception("Invalid number of dimensions for the `matrix` argument.")
-    elif matrix.ndim is 2:
+    elif matrix.ndim == 2:
       matrix = np.expand_dims(matrix, -1)
     return matrix
 
@@ -165,7 +165,7 @@ class InputFile(object):
     for c in self.channels:
       self.channel_map['all'].append(c)
       parts = c.split('.')
-      if len(parts) is 1:
+      if len(parts) == 1:
         self.root_channels.add('default')
         self.channel_map['default'].append(c)
       else:
@@ -238,7 +238,7 @@ class InputFile(object):
     for i, item in enumerate(todo):
       precision = NP_PRECISION[str(self.channel_precision[todo[i]['channel']])]
       return_dict[item['group']][:,:,item['id']] = \
-          np.fromstring(strings[i], dtype = precision) \
+          np.frombuffer(strings[i], dtype = precision) \
             .reshape(self.height, self.width)
     return return_dict
 
