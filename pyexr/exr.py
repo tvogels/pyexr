@@ -109,7 +109,7 @@ def write(filename, data, channel_names = None, precision = FLOAT, compression =
         else:
           channel_name = "%s.%s" % (group, c)
         channels[channel_name] = Imath.Channel(precisions[group])
-        channel_data[channel_name] = matrix[:,:,i].astype(NP_PRECISION[str(precisions[group])]).tostring()
+        channel_data[channel_name] = matrix[:,:,i].astype(NP_PRECISION[str(precisions[group])]).tobytes()
 
     # Save
     header = OpenEXR.Header(width, height)
@@ -129,7 +129,7 @@ def write(filename, data, channel_names = None, precision = FLOAT, compression =
     header['compression'] = compression
     header['channels'] = {c: Imath.Channel(precision) for c in channel_names}
     out = OpenEXR.OutputFile(filename, header)
-    out.writePixels({c: data[:,:,i].astype(NP_PRECISION[str(precision)]).tostring() for i, c in enumerate(channel_names)})
+    out.writePixels({c: data[:,:,i].astype(NP_PRECISION[str(precision)]).tobytes() for i, c in enumerate(channel_names)})
 
   else:
     raise Exception("Invalid precision for the `data` argument. Supported are NumPy arrays and dictionaries.")
