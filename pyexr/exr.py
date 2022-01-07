@@ -47,7 +47,7 @@ def read_all(filename, precision = FLOAT):
   f = open(filename)
   return f.get_all(precision=precision)
 
-def write(filename, data, channel_names = None, precision = FLOAT, compression = PIZ_COMPRESSION):
+def write(filename, data, channel_names = None, precision = FLOAT, compression = PIZ_COMPRESSION, extra_headers={}):
 
   # Helper function add a third dimension to 2-dimensional matrices (single channel)
   def make_ndims_3(matrix):
@@ -113,6 +113,8 @@ def write(filename, data, channel_names = None, precision = FLOAT, compression =
 
     # Save
     header = OpenEXR.Header(width, height)
+    if extra_headers:
+      header = dict(header, **extra_headers)
     header['compression'] = compression
     header['channels'] = channels
     out = OpenEXR.OutputFile(filename, header)
@@ -126,6 +128,8 @@ def write(filename, data, channel_names = None, precision = FLOAT, compression =
     height, width, depth = data.shape
     channel_names = get_channel_names(channel_names, depth)
     header = OpenEXR.Header(width, height)
+    if extra_headers:
+      header = dict(header, **extra_headers)
     header['compression'] = compression
     header['channels'] = {c: Imath.Channel(precision) for c in channel_names}
     out = OpenEXR.OutputFile(filename, header)
