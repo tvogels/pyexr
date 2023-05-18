@@ -246,6 +246,15 @@ class InputFile(object):
             .reshape(self.height, self.width)
     return return_dict
 
+  def __enter__(self):
+    return self
+
+  def __exit__(self, exc_type, exc_val, exc_tb):
+    self.close()
+
+  def close(self):
+    self.input_file.close()
+
 
 def _sort_dictionary(key):
   if key == 'R' or key == 'r':
