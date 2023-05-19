@@ -9,7 +9,7 @@ A simple EXR IO-library for Python that simplifies the use of [OpenEXR](https://
 sudo apt install libopenexr-dev # (ubuntu)
 brew install openexr (mac)
 pip install git+https://github.com/jamesbowman/openexrpython.git (dependency) # or try `conda install -c conda-forge openexr-python`
-pip install pyexr
+pip install git+https://github.com/tvogels/pyexr.git
 ~~~
 
 ### Reading
