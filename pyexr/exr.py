@@ -70,28 +70,36 @@ def _make_ndims_3(matrix):
     return matrix
 
 
+def _to_type(type_, val):
+    return val if isinstance(val, type_) else type_(val)
+
+
+def _get_channel_names(
+    channel_names: Union[None, Dict[str, List[str]], List[str]],
+    depth: int,
+):
+    """Read channel names from default."""
+    if channel_names:
+        if depth != len(channel_names):
+            raise ValueError(
+                "The provided channel names have the wrong length (%d vs %d)." % (len(channel_names), depth)
+            )
+        return channel_names
+    elif depth in _default_channel_names:
+        return _default_channel_names[depth]
+    else:
+        raise ValueError("There are no suitable default channel names for data of depth %d" % depth)
+
+
 def write(
     filename: PathLike,
     data: Union[Dict[str, np.ndarray], np.ndarray],
     channel_names: Optional[Dict[str, List[str]]] = None,
-    precision: PrecisionType = FLOAT,
+    precision: Union[PrecisionType, Dict[str, PrecisionType]] = FLOAT,
     compression=PIZ_COMPRESSION,
     extra_headers={},
 ):
     filename = str(filename)
-
-    # Helper function to read channel names from default
-    def get_channel_names(channel_names, depth):
-        if channel_names:
-            if depth != len(channel_names):
-                raise ValueError(
-                    "The provided channel names have the wrong length (%d vs %d)." % (len(channel_names), depth)
-                )
-            return channel_names
-        elif depth in _default_channel_names:
-            return _default_channel_names[depth]
-        else:
-            raise ValueError("There are no suitable default channel names for data of depth %d" % depth)
 
     #
     # Case 1, the `data` argument is a dictionary
@@ -102,16 +110,18 @@ def write(
             data[group] = _make_ndims_3(matrix)
 
         # Prepare precisions
-        if not isinstance(precision, dict):
-            precisions = {group: precision for group in data.keys()}
+        precisions: Dict[str, Imath.PixelType]
+        if isinstance(precision, dict):
+            precisions = {group: _to_type(Imath.PixelType, precision.get(group, FLOAT)) for group in data.keys()}
         else:
-            precisions = {group: precision.get(group, FLOAT) for group in data.keys()}
+            precisions = {group: _to_type(Imath.PixelType, precision) for group in data.keys()}
 
         # Prepare channel names
         if channel_names is None:
             channel_names = {}
-        channel_names = {
-            group: get_channel_names(channel_names.get(group), matrix.shape[2]) for group, matrix in data.items()
+
+        resolved_channel_names = {
+            group: _get_channel_names(channel_names.get(group), matrix.shape[2]) for group, matrix in data.items()
         }
 
         # Collect channels
@@ -126,7 +136,7 @@ def write(
                 height, width, depth = matrix.shape
             else:
                 depth = matrix.shape[2]
-            names = channel_names[group]
+            names = resolved_channel_names[group]
             # Check the number of channel names
             if len(names) != depth:
                 raise ValueError("Depth does not match the number of channel names for channel '%s'" % group)
@@ -153,17 +163,20 @@ def write(
     elif isinstance(data, np.ndarray):
         data = _make_ndims_3(data)
         height, width, depth = data.shape
-        channel_names = get_channel_names(channel_names, depth)
+        resolved_channel_names = _get_channel_names(channel_names, depth)
         header = OpenEXR.Header(width, height)
         if extra_headers:
             header = dict(header, **extra_headers)
         header["compression"] = compression
-        header["channels"] = {c: Imath.Channel(precision) for c in channel_names}
+        precision = _to_type(Imath.PixelType, precision)
+        header["channels"] = {c: Imath.Channel(precision) for c in resolved_channel_names}
         out = OpenEXR.OutputFile(filename, header)
         out.writePixels(
-            {c: data[:, :, i].astype(NP_PRECISION[str(precision)]).tobytes() for i, c in enumerate(channel_names)}
+            {
+                c: data[:, :, i].astype(NP_PRECISION[str(precision)]).tobytes()
+                for i, c in enumerate(resolved_channel_names)
+            }
         )
-
     else:
         raise TypeError("Invalid precision for the `data` argument. Supported are NumPy arrays and dictionaries.")
 
