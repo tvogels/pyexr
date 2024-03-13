@@ -1,10 +1,11 @@
 import os
 from collections import defaultdict
-from typing import Union
+from typing import Dict, List, Literal, Optional, Set, Tuple, Union
 
 import Imath
 import numpy as np
 import OpenEXR
+from numpy.typing import ArrayLike, DTypeLike
 
 FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
 HALF = Imath.PixelType(Imath.PixelType.HALF)
@@ -17,12 +18,17 @@ ZIP_COMPRESSION = Imath.Compression(Imath.Compression.ZIP_COMPRESSION)
 PIZ_COMPRESSION = Imath.Compression(Imath.Compression.PIZ_COMPRESSION)
 PXR24_COMPRESSION = Imath.Compression(Imath.Compression.PXR24_COMPRESSION)
 
-NP_PRECISION = {"FLOAT": np.float32, "HALF": np.float16, "UINT": np.uint32}
+NP_PRECISION: Dict[str, DTypeLike] = {
+    "FLOAT": np.float32,
+    "HALF": np.float16,
+    "UINT": np.uint32,
+}
 
 PathLike = Union[str, bytes, os.PathLike]
+PrecisionType = Union[Literal["FLOAT", "HALF", "UINT"], Imath.PixelType]
 
 
-def open(filename: PathLike):
+def open(filename: PathLike) -> "InputFile":
     # Check if the file is an EXR file
     filename = str(filename)
     if not OpenEXR.isOpenExrFile(filename):
@@ -33,22 +39,22 @@ def open(filename: PathLike):
 
 def read(
     filename: PathLike,
-    channels="default",
-    precision=FLOAT,
+    channels: Union[None, str, Set[str], List[str], Tuple[str, ...]] = "default",
+    precision: PrecisionType = FLOAT,
 ):
     filename = str(filename)
-    f = open(filename)
-    if _is_list(channels):
-        # Construct an array of precisions
-        return f.get_dict(channels, precision=precision)
+    with open(filename) as f:
+        if _is_list(channels):
+            # Construct an array of precisions
+            return f.get_dict(channels, precision=precision)
 
-    else:
-        return f.get(channels, precision)
+        else:
+            return f.get(channels, precision)
 
 
 def read_all(filename: PathLike, precision=FLOAT):
-    f = open(filename)
-    return f.get_all(precision=precision)
+    with open(filename) as f:
+        return f.get_all(precision=precision)
 
 
 def write(
@@ -204,7 +210,14 @@ class InputFile:
                 channels = self.channel_map[group]
                 print("%-20s%s" % (group, ",".join([c[len(group) + 1 :] for c in channels])))
 
-    def get(self, group="default", precision=FLOAT):
+    def get(
+        self,
+        group: Union[None, str, Set[str], List[str], Tuple[str, ...]] = "default",
+        precision: PrecisionType = FLOAT,
+    ):
+        if group is None:
+            group = "default"
+
         channels = self.channel_map[group]
 
         if len(channels) == 0:
@@ -221,10 +234,20 @@ class InputFile:
             matrix[:, :, i] = np.frombuffer(string, dtype=precision).reshape(self.height, self.width)
         return matrix
 
-    def get_all(self, precision={}):
+    def get_all(self, precision: Union[None, PrecisionType, Dict[str, PrecisionType]] = None):
         return self.get_dict(self.root_channels, precision)
 
-    def get_dict(self, groups=[], precision={}):
+    def get_dict(
+        self,
+        groups: Union[None, str, Set[str], List[str], Tuple[str, ...]] = None,
+        precision: Union[None, PrecisionType, Dict[str, PrecisionType]] = None,
+    ):
+        if groups is None:
+            groups = []
+
+        if precision is None:
+            precision = {}
+
         if not isinstance(precision, dict):
             precision = {group: precision for group in groups}
 
@@ -255,8 +278,8 @@ class InputFile:
         strings = self.input_file.channels([c["channel"] for c in todo])
 
         for i, item in enumerate(todo):
-            precision = NP_PRECISION[str(self.channel_precision[todo[i]["channel"]])]
-            return_dict[item["group"]][:, :, item["id"]] = np.frombuffer(strings[i], dtype=precision).reshape(
+            dtype = NP_PRECISION[str(self.channel_precision[todo[i]["channel"]])]
+            return_dict[item["group"]][:, :, item["id"]] = np.frombuffer(strings[i], dtype=dtype).reshape(
                 self.height, self.width
             )
         return return_dict
@@ -298,4 +321,4 @@ _default_channel_names = {1: ["Z"], 2: ["X", "Y"], 3: ["R", "G", "B"], 4: ["R", 
 
 
 def _is_list(x):
-    return isinstance(x, (list, tuple, np.ndarray))
+    return isinstance(x, (set, list, tuple, np.ndarray))
