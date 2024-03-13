@@ -1,5 +1,6 @@
-"""
-See test images from their source at:
+"""Test pyexr core capabilities.
+
+See EXR test images from their source at:
 
     https://github.com/AcademySoftwareFoundation/openexr-images/tree/main/TestImages
 """

@@ -62,7 +62,7 @@ def read_all(filename: PathLike, precision=FLOAT):
 
 
 def _make_ndims_3(matrix):
-    """Add a third dimension to 2-dimensional matrices (single channel) if necessary"""
+    """If necessary, adds a third dimension to 2-dimensional matrices (single channel)."""
     if matrix.ndim > 3 or matrix.ndim < 2:
         raise ValueError("Invalid number of dimensions for the `matrix` argument.")
     elif matrix.ndim == 2:
@@ -96,8 +96,8 @@ def write(
     data: Union[Dict[str, np.ndarray], np.ndarray],
     channel_names: Optional[Dict[str, List[str]]] = None,
     precision: Union[PrecisionType, Dict[str, PrecisionType]] = FLOAT,
-    compression=PIZ_COMPRESSION,
-    extra_headers={},
+    compression: Imath.Compression = PIZ_COMPRESSION,
+    extra_headers: Optional[dict] = None,
 ):
     filename = str(filename)
 
@@ -112,9 +112,9 @@ def write(
         # Prepare precisions
         precisions: Dict[str, Imath.PixelType]
         if isinstance(precision, dict):
-            precisions = {group: _to_type(Imath.PixelType, precision.get(group, FLOAT)) for group in data.keys()}
+            precisions = {group: _to_type(Imath.PixelType, precision.get(group, FLOAT)) for group in data}
         else:
-            precisions = {group: _to_type(Imath.PixelType, precision) for group in data.keys()}
+            precisions = {group: _to_type(Imath.PixelType, precision) for group in data}
 
         # Prepare channel names
         if channel_names is None:
@@ -141,10 +141,7 @@ def write(
             if len(names) != depth:
                 raise ValueError("Depth does not match the number of channel names for channel '%s'" % group)
             for i, c in enumerate(names):
-                if group == "default":
-                    channel_name = c
-                else:
-                    channel_name = "%s.%s" % (group, c)
+                channel_name = c if group == "default" else f"{group}.{c}"
                 channels[channel_name] = Imath.Channel(precisions[group])
                 channel_data[channel_name] = matrix[:, :, i].astype(NP_PRECISION[str(precisions[group])]).tobytes()
 
@@ -225,7 +222,7 @@ class InputFile:
         if "default" in self.root_channels:
             for c in self.channel_map["default"]:
                 out.append(c)
-        for group in sorted(list(self.root_channels)):
+        for group in sorted(self.root_channels):
             if group != "default":
                 channels = self.channel_map[group]
                 out.append("%-20s%s" % (group, ",".join([c[len(group) + 1 :] for c in channels])))
@@ -275,10 +272,7 @@ class InputFile:
             group_chans = self.channel_map[group]
             if len(group_chans) == 0:
                 raise ExrError(f"Did not find any channels in group '{group}'.\nTry:\n{self.describe_channels()}")
-            if group in precision:
-                p = precision[group]
-            else:
-                p = FLOAT
+            p = precision.get(group, FLOAT)
             matrix = np.zeros((self.height, self.width, len(group_chans)), dtype=NP_PRECISION[str(p)])
             return_dict[group] = matrix
             for i, c in enumerate(group_chans):
