@@ -125,3 +125,19 @@ def test_write_single_channel_default(fn, depth):
         assert f.channel_precision == {
             "Z": pyexr.FLOAT,
         }
+
+
+def test_write_custom(fn, depth, rgb):
+    data = {"default": rgb, "Depth": depth}
+    pyexr.write(fn, data, precision={"default": pyexr.HALF}, channel_names={"Depth": ["Q"]})
+
+    with pyexr.open(fn) as f:
+        assert f.channels == ["R", "G", "B", "Depth.Q"]
+        assert f.width == 640
+        assert f.height == 480
+        assert f.channel_precision == {
+            "B": pyexr.HALF,
+            "Depth.Q": pyexr.FLOAT,
+            "G": pyexr.HALF,
+            "R": pyexr.HALF,
+        }

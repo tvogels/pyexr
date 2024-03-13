@@ -31,7 +31,11 @@ def open(filename: PathLike):
     return InputFile(OpenEXR.InputFile(filename), filename)
 
 
-def read(filename: PathLike, channels="default", precision=FLOAT):
+def read(
+    filename: PathLike,
+    channels="default",
+    precision=FLOAT,
+):
     filename = str(filename)
     f = open(filename)
     if _is_list(channels):
@@ -47,7 +51,14 @@ def read_all(filename: PathLike, precision=FLOAT):
     return f.get_all(precision=precision)
 
 
-def write(filename: PathLike, data, channel_names=None, precision=FLOAT, compression=PIZ_COMPRESSION, extra_headers={}):
+def write(
+    filename: PathLike,
+    data,
+    channel_names=None,
+    precision=FLOAT,
+    compression=PIZ_COMPRESSION,
+    extra_headers={},
+):
     filename = str(filename)
 
     # Helper function add a third dimension to 2-dimensional matrices (single channel)
@@ -146,7 +157,7 @@ def write(filename: PathLike, data, channel_names=None, precision=FLOAT, compres
         raise Exception("Invalid precision for the `data` argument. Supported are NumPy arrays and dictionaries.")
 
 
-def tonemap(matrix, gamma=2.2):
+def tonemap(matrix: np.ndarray, gamma: float = 2.2):
     return np.clip(matrix ** (1.0 / gamma), 0, 1)
 
 
