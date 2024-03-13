@@ -141,3 +141,16 @@ def test_write_custom(fn, depth, rgb):
             "G": pyexr.HALF,
             "R": pyexr.HALF,
         }
+
+
+def test_describe_channels_custom(fn, depth, rgb):
+    data = {"default": rgb, "Depth": depth}
+    pyexr.write(fn, data, channel_names={"Depth": ["Q"]})
+    with pyexr.open(fn) as f:
+        actual = f.describe_channels()
+        assert actual == "R\nG\nB\nDepth               Q"
+
+
+def test_describe_channels_default(all_half_values):
+    actual = all_half_values.describe_channels()
+    assert actual == "R\nG\nB"

@@ -28,11 +28,15 @@ PathLike = Union[str, bytes, os.PathLike]
 PrecisionType = Union[Literal["FLOAT", "HALF", "UINT"], Imath.PixelType]
 
 
+class ExrError(Exception):
+    pass
+
+
 def open(filename: PathLike) -> "InputFile":
     # Check if the file is an EXR file
     filename = str(filename)
     if not OpenEXR.isOpenExrFile(filename):
-        raise Exception("File '%s' is not an EXR file." % filename)
+        raise ExrError("File '%s' is not an EXR file." % filename)
     # Return an `InputFile`
     return InputFile(OpenEXR.InputFile(filename), filename)
 
@@ -70,7 +74,7 @@ def write(
     # Helper function add a third dimension to 2-dimensional matrices (single channel)
     def make_ndims_3(matrix):
         if matrix.ndim > 3 or matrix.ndim < 2:
-            raise Exception("Invalid number of dimensions for the `matrix` argument.")
+            raise ValueError("Invalid number of dimensions for the `matrix` argument.")
         elif matrix.ndim == 2:
             matrix = np.expand_dims(matrix, -1)
         return matrix
@@ -79,14 +83,14 @@ def write(
     def get_channel_names(channel_names, depth):
         if channel_names:
             if depth != len(channel_names):
-                raise Exception(
+                raise ValueError(
                     "The provided channel names have the wrong length (%d vs %d)." % (len(channel_names), depth)
                 )
             return channel_names
         elif depth in _default_channel_names:
             return _default_channel_names[depth]
         else:
-            raise Exception("There are no suitable default channel names for data of depth %d" % depth)
+            raise ValueError("There are no suitable default channel names for data of depth %d" % depth)
 
     #
     # Case 1, the `data` argument is a dictionary
@@ -124,7 +128,7 @@ def write(
             names = channel_names[group]
             # Check the number of channel names
             if len(names) != depth:
-                raise Exception("Depth does not match the number of channel names for channel '%s'" % group)
+                raise ValueError("Depth does not match the number of channel names for channel '%s'" % group)
             for i, c in enumerate(names):
                 if group == "default":
                     channel_name = c
@@ -160,7 +164,7 @@ def write(
         )
 
     else:
-        raise Exception("Invalid precision for the `data` argument. Supported are NumPy arrays and dictionaries.")
+        raise TypeError("Invalid precision for the `data` argument. Supported are NumPy arrays and dictionaries.")
 
 
 def tonemap(matrix: np.ndarray, gamma: float = 2.2):
@@ -172,7 +176,7 @@ class InputFile:
         self.input_file = input_file
 
         if not input_file.isComplete():
-            raise Exception("EXR file '%s' is not ready." % filename)
+            raise ExrError("EXR file '%s' is not ready." % filename)
 
         header = input_file.header()
         dw = header["dataWindow"]
@@ -201,14 +205,17 @@ class InputFile:
                 key = ".".join(parts[0:i])
                 self.channel_map[key].append(c)
 
-    def describe_channels(self):
+    def describe_channels(self) -> str:
+        """Debugging method."""
+        out = []
         if "default" in self.root_channels:
             for c in self.channel_map["default"]:
-                print(c)
+                out.append(c)
         for group in sorted(list(self.root_channels)):
             if group != "default":
                 channels = self.channel_map[group]
-                print("%-20s%s" % (group, ",".join([c[len(group) + 1 :] for c in channels])))
+                out.append("%-20s%s" % (group, ",".join([c[len(group) + 1 :] for c in channels])))
+        return "\n".join(out)
 
     def get(
         self,
@@ -221,10 +228,7 @@ class InputFile:
         channels = self.channel_map[group]
 
         if len(channels) == 0:
-            print("I did't find any channels in group '%s'." % group)
-            print("You could try:")
-            self.describe_channels()
-            raise Exception("I did't find any channels in group '%s'." % group)
+            raise ExrError(f"Did not find any channels in group '{group}'.\nTry:\n{self.describe_channels()}")
 
         strings = self.input_file.channels(channels)
 
@@ -256,10 +260,7 @@ class InputFile:
         for group in groups:
             group_chans = self.channel_map[group]
             if len(group_chans) == 0:
-                print("I didn't find any channels for the requested group '%s'." % group)
-                print("You could try:")
-                self.describe_channels()
-                raise Exception("I did't find any channels in group '%s'." % group)
+                raise ExrError(f"Did not find any channels in group '{group}'.\nTry:\n{self.describe_channels()}")
             if group in precision:
                 p = precision[group]
             else:
@@ -270,10 +271,7 @@ class InputFile:
                 todo.append({"group": group, "id": i, "channel": c})
 
         if len(todo) == 0:
-            print("Please ask for some channels, I cannot process empty queries.")
-            print("You could try:")
-            self.describe_channels()
-            raise Exception("Please ask for some channels, I cannot process empty queries.")
+            raise ExrError(f"Specify channels; cannot process empty queries.\nTry:\n{self.describe_channels}")
 
         strings = self.input_file.channels([c["channel"] for c in todo])
 
