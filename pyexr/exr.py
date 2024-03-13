@@ -61,23 +61,24 @@ def read_all(filename: PathLike, precision=FLOAT):
         return f.get_all(precision=precision)
 
 
+def _make_ndims_3(matrix):
+    """Add a third dimension to 2-dimensional matrices (single channel) if necessary"""
+    if matrix.ndim > 3 or matrix.ndim < 2:
+        raise ValueError("Invalid number of dimensions for the `matrix` argument.")
+    elif matrix.ndim == 2:
+        matrix = np.expand_dims(matrix, -1)
+    return matrix
+
+
 def write(
     filename: PathLike,
-    data,
-    channel_names=None,
-    precision=FLOAT,
+    data: Union[Dict[str, np.ndarray], np.ndarray],
+    channel_names: Optional[Dict[str, List[str]]] = None,
+    precision: PrecisionType = FLOAT,
     compression=PIZ_COMPRESSION,
     extra_headers={},
 ):
     filename = str(filename)
-
-    # Helper function add a third dimension to 2-dimensional matrices (single channel)
-    def make_ndims_3(matrix):
-        if matrix.ndim > 3 or matrix.ndim < 2:
-            raise ValueError("Invalid number of dimensions for the `matrix` argument.")
-        elif matrix.ndim == 2:
-            matrix = np.expand_dims(matrix, -1)
-        return matrix
 
     # Helper function to read channel names from default
     def get_channel_names(channel_names, depth):
@@ -98,7 +99,7 @@ def write(
     if isinstance(data, dict):
         # Make sure everything has ndims 3
         for group, matrix in data.items():
-            data[group] = make_ndims_3(matrix)
+            data[group] = _make_ndims_3(matrix)
 
         # Prepare precisions
         if not isinstance(precision, dict):
@@ -150,7 +151,7 @@ def write(
     # Case 2, the `data` argument is one matrix
     #
     elif isinstance(data, np.ndarray):
-        data = make_ndims_3(data)
+        data = _make_ndims_3(data)
         height, width, depth = data.shape
         channel_names = get_channel_names(channel_names, depth)
         header = OpenEXR.Header(width, height)
@@ -234,8 +235,8 @@ class InputFile:
 
         matrix = np.zeros((self.height, self.width, len(channels)), dtype=NP_PRECISION[str(precision)])
         for i, string in enumerate(strings):
-            precision = NP_PRECISION[str(self.channel_precision[channels[i]])]
-            matrix[:, :, i] = np.frombuffer(string, dtype=precision).reshape(self.height, self.width)
+            dtype = NP_PRECISION[str(self.channel_precision[channels[i]])]
+            matrix[:, :, i] = np.frombuffer(string, dtype=dtype).reshape(self.height, self.width)
         return matrix
 
     def get_all(self, precision: Union[None, PrecisionType, Dict[str, PrecisionType]] = None):
