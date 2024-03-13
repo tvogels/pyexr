@@ -15,7 +15,7 @@ repository = "https://github.com/tvogels/pyexr"
 license = "MIT"
 description = "One line EXR manipulation library"
 authors = ["Thijs Vogels", "Brian Pugh"]
-readme = "README.rst"
+readme = "README.md"
 packages = [{include = "pyexr"}]
 include = ["pyexr/*.so", "pyexr/*.pyd"]  # Compiled extensions
 
