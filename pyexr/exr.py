@@ -1,6 +1,6 @@
 import os
-from builtins import *
 from collections import defaultdict
+from typing import Union
 
 import Imath
 import numpy as np
@@ -19,16 +19,20 @@ PXR24_COMPRESSION = Imath.Compression(Imath.Compression.PXR24_COMPRESSION)
 
 NP_PRECISION = {"FLOAT": np.float32, "HALF": np.float16, "UINT": np.uint32}
 
+PathLike = Union[str, bytes, os.PathLike]
 
-def open(filename):
+
+def open(filename: PathLike):
     # Check if the file is an EXR file
+    filename = str(filename)
     if not OpenEXR.isOpenExrFile(filename):
         raise Exception("File '%s' is not an EXR file." % filename)
     # Return an `InputFile`
     return InputFile(OpenEXR.InputFile(filename), filename)
 
 
-def read(filename, channels="default", precision=FLOAT):
+def read(filename: PathLike, channels="default", precision=FLOAT):
+    filename = str(filename)
     f = open(filename)
     if _is_list(channels):
         # Construct an array of precisions
@@ -38,12 +42,13 @@ def read(filename, channels="default", precision=FLOAT):
         return f.get(channels, precision)
 
 
-def read_all(filename, precision=FLOAT):
+def read_all(filename: PathLike, precision=FLOAT):
     f = open(filename)
     return f.get_all(precision=precision)
 
 
-def write(filename, data, channel_names=None, precision=FLOAT, compression=PIZ_COMPRESSION, extra_headers={}):
+def write(filename: PathLike, data, channel_names=None, precision=FLOAT, compression=PIZ_COMPRESSION, extra_headers={}):
+    filename = str(filename)
 
     # Helper function add a third dimension to 2-dimensional matrices (single channel)
     def make_ndims_3(matrix):
@@ -146,7 +151,6 @@ def tonemap(matrix, gamma=2.2):
 
 
 class InputFile:
-
     def __init__(self, input_file, filename=None):
         self.input_file = input_file
 
@@ -210,7 +214,6 @@ class InputFile:
         return self.get_dict(self.root_channels, precision)
 
     def get_dict(self, groups=[], precision={}):
-
         if not isinstance(precision, dict):
             precision = {group: precision for group in groups}
 
