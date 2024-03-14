@@ -75,11 +75,20 @@ def all_half_values():
     ],
 )
 def test_read_direct_default(path):
+    """Tests both ``str`` and ``Path`` inputs."""
     data = pyexr.read(path)
 
     assert isinstance(data, np.ndarray)
     assert data.shape == (256, 256, 3)
     assert data.dtype == np.float32
+
+
+def test_read_direct_channels():
+    data = pyexr.read("tests/openexr-images/TestImages/AllHalfValues.exr", channels=["R"])
+
+    assert isinstance(data, dict)
+    assert data["R"].shape == (256, 256, 1)
+    assert data["R"].dtype == np.float32
 
 
 def test_read_all_half_values(all_half_values):

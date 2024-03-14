@@ -45,7 +45,7 @@ def read(
     filename: PathLike,
     channels: Union[None, str, Set[str], List[str], Tuple[str, ...]] = "default",
     precision: PrecisionType = FLOAT,
-):
+) -> Union[np.ndarray, Dict[str, np.ndarray]]:
     with open(str(filename)) as f:
         if _is_list(channels):
             # Construct an array of precisions
