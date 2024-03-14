@@ -99,9 +99,9 @@ def write(
 ):
     filename = str(filename)
 
-    #
-    # Case 1, the `data` argument is a dictionary
-    #
+    if extra_headers is None:
+        extra_headers = {}
+
     if isinstance(data, dict):
         # Make sure everything has ndims 3
         for group, matrix in data.items():
@@ -123,10 +123,8 @@ def write(
         }
 
         # Collect channels
-        channels = {}
-        channel_data = {}
-        width = None
-        height = None
+        channels, channel_data = {}, {}
+        height, width = None, None
         for group, matrix in data.items():
             # Read the depth of the current group
             # and set height and width variables if not set yet
@@ -142,38 +140,26 @@ def write(
                 channel_name = c if group == "default" else f"{group}.{c}"
                 channels[channel_name] = Imath.Channel(precisions[group])
                 channel_data[channel_name] = matrix[:, :, i].astype(NP_PRECISION[str(precisions[group])]).tobytes()
-
-        # Save
-        header = OpenEXR.Header(width, height)
-        if extra_headers:
-            header = dict(header, **extra_headers)
-        header["compression"] = compression
-        header["channels"] = channels
-        out = OpenEXR.OutputFile(filename, header)
-        out.writePixels(channel_data)
-
-    #
-    # Case 2, the `data` argument is one matrix
-    #
     elif isinstance(data, np.ndarray):
         data = _make_ndims_3(data)
         height, width, depth = data.shape
         resolved_channel_names = _get_channel_names(channel_names, depth)
-        header = OpenEXR.Header(width, height)
-        if extra_headers:
-            header = dict(header, **extra_headers)
-        header["compression"] = compression
         precision = _to_type(Imath.PixelType, precision)
-        header["channels"] = {c: Imath.Channel(precision) for c in resolved_channel_names}
-        out = OpenEXR.OutputFile(filename, header)
-        out.writePixels(
-            {
-                c: data[:, :, i].astype(NP_PRECISION[str(precision)]).tobytes()
-                for i, c in enumerate(resolved_channel_names)
-            }
-        )
+        channels = {c: Imath.Channel(precision) for c in resolved_channel_names}
+        channel_data = {
+            c: data[:, :, i].astype(NP_PRECISION[str(precision)]).tobytes()
+            for i, c in enumerate(resolved_channel_names)
+        }
     else:
         raise TypeError("Invalid precision for the `data` argument. Supported are NumPy arrays and dictionaries.")
+
+    # Save
+    header = OpenEXR.Header(width, height)
+    header.update(extra_headers)
+    header["compression"] = compression
+    header["channels"] = channels
+    out = OpenEXR.OutputFile(filename, header)
+    out.writePixels(channel_data)
 
 
 def tonemap(matrix: np.ndarray, gamma: float = 2.2):
@@ -266,29 +252,27 @@ class InputFile:
         if not isinstance(precision, dict):
             precision = {group: precision for group in groups}
 
-        return_dict = {}
-        todo = []
+        out = {}
+        channel_items = []
         for group in groups:
             group_chans = self.channel_map[group]
             if len(group_chans) == 0:
                 raise ExrError(f"Did not find any channels in group '{group}'.\nTry:\n{self.describe_channels()}")
             p = precision.get(group, FLOAT)
             matrix = np.zeros((self.height, self.width, len(group_chans)), dtype=NP_PRECISION[str(p)])
-            return_dict[group] = matrix
+            out[group] = matrix
             for i, c in enumerate(group_chans):
-                todo.append({"group": group, "id": i, "channel": c})
+                channel_items.append({"group": group, "id": i, "channel": c})
 
-        if len(todo) == 0:
+        if not channel_items:
             raise ExrError(f"Specify channels; cannot process empty queries.\nTry:\n{self.describe_channels}")
 
-        strings = self.input_file.channels([c["channel"] for c in todo])
+        strings = self.input_file.channels([c["channel"] for c in channel_items])
 
-        for i, item in enumerate(todo):
-            dtype = NP_PRECISION[str(self.channel_precision[todo[i]["channel"]])]
-            return_dict[item["group"]][:, :, item["id"]] = np.frombuffer(strings[i], dtype=dtype).reshape(
-                self.height, self.width
-            )
-        return return_dict
+        for item, s in zip(channel_items, strings):
+            dtype = NP_PRECISION[str(self.channel_precision[item["channel"]])]
+            out[item["group"]][:, :, item["id"]] = np.frombuffer(s, dtype=dtype).reshape(self.height, self.width)
+        return out
 
     def __enter__(self):
         return self
@@ -315,7 +299,12 @@ def _channel_sort_key(i):
     return [_sort_dictionary.get(x.upper(), x) for x in i.split(".")]
 
 
-_default_channel_names = {1: ["Z"], 2: ["X", "Y"], 3: ["R", "G", "B"], 4: ["R", "G", "B", "A"]}
+_default_channel_names = {
+    1: ["Z"],
+    2: ["X", "Y"],
+    3: ["R", "G", "B"],
+    4: ["R", "G", "B", "A"],
+}
 
 
 def _is_list(x):
