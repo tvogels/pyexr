@@ -46,6 +46,10 @@ def read(
     channels: Union[None, str, Set[str], List[str], Tuple[str, ...]] = "default",
     precision: PrecisionType = FLOAT,
 ) -> Union[np.ndarray, Dict[str, np.ndarray]]:
+    """Read and return a numpy array.
+
+    Returns a dictionary of arrays if multiple channels specified.
+    """
     with open(str(filename)) as f:
         if _is_list(channels):
             # Construct an array of precisions
@@ -55,6 +59,7 @@ def read(
 
 
 def read_all(filename: PathLike, precision: PrecisionType = FLOAT):
+    """Read all the channels available."""
     with open(filename) as f:
         return f.get_all(precision=precision)
 
@@ -218,7 +223,7 @@ class InputFile:
         self,
         group: Union[None, str, Set[str], List[str], Tuple[str, ...]] = "default",
         precision: PrecisionType = FLOAT,
-    ):
+    ) -> np.ndarray:
         if group is None:
             group = "default"
 
@@ -235,14 +240,15 @@ class InputFile:
             matrix[:, :, i] = np.frombuffer(string, dtype=dtype).reshape(self.height, self.width)
         return matrix
 
-    def get_all(self, precision: Union[None, PrecisionType, Dict[str, PrecisionType]] = None):
+    def get_all(self, precision: Union[None, PrecisionType, Dict[str, PrecisionType]] = None) -> Dict[str, np.ndarray]:
+        """Read all the channels available."""
         return self.get_dict(self.root_channels, precision)
 
     def get_dict(
         self,
         groups: Union[None, str, Set[str], List[str], Tuple[str, ...]] = None,
         precision: Union[None, PrecisionType, Dict[str, PrecisionType]] = None,
-    ):
+    ) -> Dict[str, np.ndarray]:
         if groups is None:
             groups = []
 

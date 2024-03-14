@@ -154,7 +154,7 @@ def test_write_single_channel_default(fn, depth):
         }
 
 
-def test_write_custom(fn, depth, rgb):
+def test_write_custom_and_read_all(fn, depth, rgb):
     data = {"default": rgb, "Depth": depth}
     pyexr.write(fn, data, precision={"default": pyexr.HALF}, channel_names={"Depth": ["Q"]})
 
@@ -168,6 +168,10 @@ def test_write_custom(fn, depth, rgb):
             "G": pyexr.HALF,
             "R": pyexr.HALF,
         }
+
+    readback = pyexr.read_all(fn)
+    assert readback["default"].shape == (480, 640, 3)
+    assert readback["Depth"].shape == (480, 640, 1)
 
 
 def test_describe_channels_custom(fn, depth, rgb):
