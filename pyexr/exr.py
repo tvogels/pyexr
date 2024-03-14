@@ -38,7 +38,7 @@ def open(filename: PathLike) -> "InputFile":
     if not OpenEXR.isOpenExrFile(filename):
         raise ExrError(f"File '{filename}' is not an EXR file.")
     # Return an `InputFile`
-    return InputFile(OpenEXR.InputFile(filename), filename)
+    return InputFile(OpenEXR.InputFile(filename))
 
 
 def read(
@@ -54,12 +54,12 @@ def read(
             return f.get(channels, precision)
 
 
-def read_all(filename: PathLike, precision=FLOAT):
+def read_all(filename: PathLike, precision: PrecisionType = FLOAT):
     with open(filename) as f:
         return f.get_all(precision=precision)
 
 
-def _make_ndims_3(matrix):
+def _make_ndims_3(matrix: np.ndarray):
     """If necessary, adds a third dimension to 2-dimensional matrices (single channel)."""
     if matrix.ndim > 3 or matrix.ndim < 2:
         raise ValueError("Invalid number of dimensions for the `matrix` argument.")
@@ -181,11 +181,14 @@ def tonemap(matrix: np.ndarray, gamma: float = 2.2):
 
 
 class InputFile:
-    def __init__(self, input_file, filename=None):
+    def __init__(
+        self,
+        input_file: OpenEXR.InputFile,
+    ):
         self.input_file = input_file
 
         if not input_file.isComplete():
-            raise ExrError("EXR file '%s' is not ready." % filename)
+            raise ExrError("EXR file not ready.")
 
         header = input_file.header()
         dw = header["dataWindow"]
