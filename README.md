@@ -1,3 +1,6 @@
+![Python compat](https://img.shields.io/badge/>=python-3.8-blue.svg)
+[![PyPI](https://img.shields.io/pypi/v/pyexr.svg)](https://pypi.org/project/pyexr/)
+[![codecov](https://codecov.io/gh/tvogels/pyexr/graph/badge.svg)](https://codecov.io/gh/tvogels/pyexr)
 
 # PyEXR
 
