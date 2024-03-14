@@ -5,7 +5,7 @@ from typing import Dict, List, Literal, Optional, Set, Tuple, Union
 import Imath
 import numpy as np
 import OpenEXR
-from numpy.typing import ArrayLike, DTypeLike
+from numpy.typing import DTypeLike
 
 FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
 HALF = Imath.PixelType(Imath.PixelType.HALF)
