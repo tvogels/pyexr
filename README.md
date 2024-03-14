@@ -1,15 +1,15 @@
+![Python compat](https://img.shields.io/badge/>=python-3.8-blue.svg)
+[![PyPI](https://img.shields.io/pypi/v/pyexr.svg)](https://pypi.org/project/pyexr/)
+[![codecov](https://codecov.io/gh/tvogels/pyexr/graph/badge.svg)](https://codecov.io/gh/tvogels/pyexr)
 
 # PyEXR
 
-A simple EXR IO-library for Python that simplifies the use of [OpenEXR](https://github.com/jamesbowman/openexrpython).
+A simple EXR IO-library for Python that simplifies the use of [OpenEXR](https://github.com/AcademySoftwareFoundation/openexr).
 
 ### Installation
 
 ~~~bash
-sudo apt install libopenexr-dev # (ubuntu)
-brew install openexr (mac)
-pip install git+https://github.com/jamesbowman/openexrpython.git (dependency) # or try `conda install -c conda-forge openexr-python`
-pip install git+https://github.com/tvogels/pyexr.git
+pip install pyexr
 ~~~
 
 ### Reading
@@ -19,17 +19,16 @@ __Simple files__
 ~~~python
 import pyexr
 
-file = pyexr.open("color.exr")
+with pyexr.open("color.exr") as file:
+    file.channels               # [R, G, B]
+    file.width                  # 1280
+    file.height                 # 720
+    file.channel_precision["R"] # pyexr.FLOAT
 
-file.channels               # [R, G, B]
-file.width                  # 1280
-file.height                 # 720
-file.channel_precision["R"] # pyexr.FLOAT
-
-img = file.get()                         # (720,1280,3) np.float32 array
-img = file.get(precision=pyexr.HALF)          # (720,1280,3) np.float16 array
-red = file.get("R")                  # (720,1280,1) np.float32 array
-red = file.get("R", precision=pyexr.HALF) # (720,1280,1) np.float16 array
+    img = file.get()                         # (720,1280,3) np.float32 array
+    img = file.get(precision=pyexr.HALF)          # (720,1280,3) np.float16 array
+    red = file.get("R")                  # (720,1280,1) np.float32 array
+    red = file.get("R", precision=pyexr.HALF) # (720,1280,1) np.float16 array
 
 ~~~
 
@@ -39,18 +38,17 @@ __Fat / Multi-channel EXRs__
 ~~~python
 import pyexr
 
-file = pyexr.open("multi-channel.exr")
+with pyexr.open("multi-channel.exr") as file:
+    file.channels               # [R, G, B, A, Variance.R, Variance.G, Variance.B]
+    file.width                  # 1280
+    file.height                 # 720
 
-file.channels               # [R, G, B, A, Variance.R, Variance.G, Variance.B]
-file.width                  # 1280
-file.height                 # 720
+    all = file.get()            # (720,1280,7) np.float32 array (R,G,B,A,Var..)
+    var = file.get("Variance")  # (720,1280,3) np.float32 array
+    col = file.get("default")   # (720,1280,4) np.float32 array (R,G,B,A)
+    file.channel_map['default'] # ['R','G','B','A']
 
-all = file.get()            # (720,1280,7) np.float32 array (R,G,B,A,Var..)
-var = file.get("Variance")  # (720,1280,3) np.float32 array
-col = file.get("default")   # (720,1280,4) np.float32 array (R,G,B,A)
-file.channel_map['default'] # ['R','G','B','A']
-
-var_r = file.channel("Variance.R") # (720,1280,3) np.float32 array
+    var_r = file.channel("Variance.R") # (720,1280,3) np.float32 array
 ~~~
 
 
