@@ -220,9 +220,8 @@ class InputFile:
     def describe_channels(self) -> str:
         """Debugging method."""
         out = []
-        if "default" in self.root_channels:
-            for c in self.channel_map["default"]:
-                out.append(c)
+        for c in self.channel_map.get("default", []):
+            out.append(c)
         for group in sorted(self.root_channels):
             if group != "default":
                 channels = self.channel_map[group]
@@ -239,7 +238,7 @@ class InputFile:
 
         channels = self.channel_map[group]
 
-        if len(channels) == 0:
+        if not channels:
             raise ExrError(f"Did not find any channels in group '{group}'.\nTry:\n{self.describe_channels()}")
 
         strings = self.input_file.channels(channels)
@@ -301,27 +300,19 @@ class InputFile:
         self.input_file.close()
 
 
-def _sort_dictionary(key):
-    if key == "R" or key == "r":
-        return "000010"
-    elif key == "G" or key == "g":
-        return "000020"
-    elif key == "B" or key == "b":
-        return "000030"
-    elif key == "A" or key == "a":
-        return "000040"
-    elif key == "X" or key == "x":
-        return "000110"
-    elif key == "Y" or key == "y":
-        return "000120"
-    elif key == "Z" or key == "z":
-        return "000130"
-    else:
-        return key
+_sort_dictionary = {
+    "R": "000010",
+    "G": "000020",
+    "B": "000030",
+    "A": "000040",
+    "X": "000110",
+    "Y": "000120",
+    "Z": "000130",
+}
 
 
 def _channel_sort_key(i):
-    return [_sort_dictionary(x) for x in i.split(".")]
+    return [_sort_dictionary.get(x.upper(), x) for x in i.split(".")]
 
 
 _default_channel_names = {1: ["Z"], 2: ["X", "Y"], 3: ["R", "G", "B"], 4: ["R", "G", "B", "A"]}
