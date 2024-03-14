@@ -26,7 +26,10 @@ generate-setup-file = false
 
 [tool.poetry.dependencies]
 python = "^3.8"
-numpy = ">=1.20.0"
+numpy = [
+    {version=">=1.20.0", python="<3.12"},
+    {version=">=1.26.0", python=">=3.12"},
+]
 OpenEXR = ">=3.2.3"  # 3.2.3 is first release in a long time that has prebuilt wheels.
 
 [tool.poetry.group.dev.dependencies]

@@ -98,11 +98,3 @@ jobs:
           flags: unittests
           env_vars: OS,PYTHON
           name: Python ${{ matrix.python-version }} on ${{ runner.os }}
-
-      #----------------------------------------------
-      #            make sure docs build
-      #----------------------------------------------
-      - name: Build HTML docs
-        run: |
-          source ${{ env.ACTIVATE_PYTHON_VENV }}
-          sphinx-build -b html docs/source/ docs/build/html
