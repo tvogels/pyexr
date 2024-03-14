@@ -4,7 +4,7 @@
 
 # PyEXR
 
-A simple EXR IO-library for Python that simplifies the use of [OpenEXR](https://github.com/jamesbowman/openexrpython).
+A simple EXR IO-library for Python that simplifies the use of [OpenEXR](https://github.com/AcademySoftwareFoundation/openexr).
 
 ### Installation
 
