@@ -2,6 +2,7 @@
 __version__ = "0.0.0"
 
 __all__ = [
+    "ExrError",
     "FLOAT",
     "HALF",
     "NO_COMPRESSION",
@@ -19,6 +20,7 @@ __all__ = [
 ]
 
 from pyexr.exr import (
+    ExrError,
     FLOAT,
     HALF,
     NO_COMPRESSION,
@@ -26,8 +28,8 @@ from pyexr.exr import (
     PXR24_COMPRESSION,
     RLE_COMPRESSION,
     UINT,
-    ZIP_COMPRESSION,
     ZIPS_COMPRESSION,
+    ZIP_COMPRESSION,
     open,
     read,
     read_all,
