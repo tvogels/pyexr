@@ -36,7 +36,7 @@ def open(filename: PathLike) -> "InputFile":
     # Check if the file is an EXR file
     filename = str(filename)
     if not OpenEXR.isOpenExrFile(filename):
-        raise ExrError("File '%s' is not an EXR file." % filename)
+        raise ExrError(f"File '{filename}' is not an EXR file.")
     # Return an `InputFile`
     return InputFile(OpenEXR.InputFile(filename), filename)
 
@@ -46,12 +46,10 @@ def read(
     channels: Union[None, str, Set[str], List[str], Tuple[str, ...]] = "default",
     precision: PrecisionType = FLOAT,
 ):
-    filename = str(filename)
-    with open(filename) as f:
+    with open(str(filename)) as f:
         if _is_list(channels):
             # Construct an array of precisions
             return f.get_dict(channels, precision=precision)
-
         else:
             return f.get(channels, precision)
 

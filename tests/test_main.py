@@ -8,6 +8,8 @@ See EXR test images from their source at:
 import numpy as np
 import pytest
 
+from pathlib import Path
+
 import pyexr
 
 
@@ -63,6 +65,21 @@ def all_half_values():
     """
     with pyexr.open("tests/openexr-images/TestImages/AllHalfValues.exr") as f:
         yield f
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "tests/openexr-images/TestImages/AllHalfValues.exr",
+        Path("tests/openexr-images/TestImages/AllHalfValues.exr"),
+    ],
+)
+def test_read_direct_default(path):
+    data = pyexr.read(path)
+
+    assert isinstance(data, np.ndarray)
+    assert data.shape == (256, 256, 3)
+    assert data.dtype == np.float32
 
 
 def test_read_all_half_values(all_half_values):
