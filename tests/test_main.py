@@ -154,6 +154,20 @@ def test_write_single_channel_default(fn, depth):
         }
 
 
+def test_write_single_channel_dwaa_compression(fn, depth):
+    pyexr.write(fn, depth, compression=pyexr.DWAA_COMPRESSION, compression_level=50)
+
+    with pyexr.open(fn) as f:
+        assert f.channels == ["Z"]
+        assert f.width == 640
+        assert f.height == 480
+        assert f.channel_precision == {
+            "Z": pyexr.FLOAT,
+        }
+    readback = pyexr.read_all(fn)
+    np.testing.assert_allclose(depth, readback["default"][..., 0])
+
+
 def test_write_custom_and_read_all(fn, depth, rgb):
     data = {"default": rgb, "Depth": depth}
     pyexr.write(fn, data, precision={"default": pyexr.HALF}, channel_names={"Depth": ["Q"]})
