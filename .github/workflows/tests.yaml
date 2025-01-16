@@ -24,11 +24,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-13, windows-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
+      POETRY_HOME: "~/poetry"
 
     steps:
       - name: Set OS Environment Variables (Windows)
@@ -46,31 +47,56 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Cache $HOME/.local # Significantly speeds up Poetry Install
-        uses: actions/cache@v4
+      - name: Set up python 3.13
+        id: setup-python-system
+        uses: actions/setup-python@v5
         with:
-          path: ~/.local
-          key: dotlocal-${{ runner.os }}-${{matrix.python-version}}-${{ hashFiles('.github/workflows/tests.yaml') }}
+          python-version: 3.13
+
+      - name: Cache Poetry Install
+        uses: actions/cache@v4
+        id: cached-poetry
+        with:
+          path: ${{ env.POETRY_HOME }}
+          key: poetry-cache-${{ runner.os }}-${{ steps.setup-python-system.outputs.python-version }}-${{ hashFiles('.github/workflows/tests.yaml') }}
+
+      - name: Install poetry
+        uses: snok/install-poetry@v1
+        if: steps.cached-poetry.outputs.cache-hit != 'true'
+
+      - name: Add Poetry to PATH # Needs to be separate from install-poetry because cache.
+        run: |
+          echo "$POETRY_HOME/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry # Needs to be separate from install-poetry because cache.
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+          poetry config installer.parallel ${{ runner.os != 'Windows' }} # Currently there seems to be some race-condition in windows
 
       - name: Set up python ${{ matrix.python-version }}
+        id: setup-python-project
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install poetry
-        uses: snok/install-poetry@v1
+      - name: Cache venv
+        uses: actions/cache@v4
+        id: cached-venv
         with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: false # Currently there seems to be some race-condition in windows
+          path: .venv/
+          key: venv-cache-${{ runner.os }}-${{ steps.setup-python-project.outputs.python-version }}-${{ hashFiles('.github/workflows/tests.yaml') }}
 
       - name: Install library
-        run: poetry install --no-interaction
+        run: |
+          poetry env use "${{ steps.setup-python-project.outputs.python-path }}"
+          poetry install --no-interaction
 
-      - uses: actions/cache@v4
+      - name: Cache pre-commit
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pre-commit/
-          key: pre-commit-4|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+          key: pre-commit-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Pre-commit run
         run: |
