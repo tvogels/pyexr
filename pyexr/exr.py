@@ -17,12 +17,24 @@ ZIPS_COMPRESSION = Imath.Compression(Imath.Compression.ZIPS_COMPRESSION)
 ZIP_COMPRESSION = Imath.Compression(Imath.Compression.ZIP_COMPRESSION)
 PIZ_COMPRESSION = Imath.Compression(Imath.Compression.PIZ_COMPRESSION)
 PXR24_COMPRESSION = Imath.Compression(Imath.Compression.PXR24_COMPRESSION)
+DWAA_COMPRESSION = Imath.Compression(Imath.Compression.DWAA_COMPRESSION)
+DWAB_COMPRESSION = Imath.Compression(Imath.Compression.DWAB_COMPRESSION)
 
 NP_PRECISION: Dict[str, DTypeLike] = {
     "FLOAT": np.float32,
     "HALF": np.float16,
     "UINT": np.uint32,
 }
+
+
+def _compression_level_header_label(compression_type):
+    if compression_type == ZIP_COMPRESSION:
+        return "zipCompressionLevel"
+    elif compression_type == DWAA_COMPRESSION or compression_type == DWAB_COMPRESSION:
+        return "dwaCompressionLevel"
+    else:
+        raise ValueError(f"Not allowed to specify compression level for {compression_type}.")
+
 
 PathLike = Union[str, bytes, os.PathLike]
 PrecisionType = Union[Literal["FLOAT", "HALF", "UINT"], Imath.PixelType]
@@ -101,11 +113,16 @@ def write(
     precision: Union[PrecisionType, Dict[str, PrecisionType]] = FLOAT,
     compression: Imath.Compression = PIZ_COMPRESSION,
     extra_headers: Optional[dict] = None,
+    compression_level: Union[None, int, float] = None,
 ):
     filename = str(filename)
 
     if extra_headers is None:
         extra_headers = {}
+
+    if compression_level is not None:
+        key = _compression_level_header_label(compression)
+        extra_headers[key] = compression_level
 
     if isinstance(data, dict):
         # Make sure everything has ndims 3
